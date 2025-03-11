@@ -96,6 +96,7 @@ struct Post{
     let imgURL: String
     let rating: Int
     let numComments: Int
+    var saved = Bool.random()
     
     init(from data: PostResponseData)throws{
         guard let post = data.data.children.first else {throw PostError.invalidData}
@@ -147,4 +148,5 @@ enum PostError: Error{
     case invalidResponse
     case invalidData
     case invalidImage
+    case gettingPostError
 }

@@ -6,28 +6,53 @@
 //
 
 import UIKit
+import SDWebImage
 
 class PostViewController: UIViewController {
     private var dataLoader: DataLoader?
 
+    @IBOutlet private weak var commentsLabel: UILabel!
+    @IBOutlet private weak var ratingLabel: UILabel!
+    @IBOutlet private weak var postPreviewImg: UIImageView!
+    @IBOutlet private weak var postTitleLabel: UILabel!
+    @IBOutlet private weak var bookmarkButton: UIButton!
+    @IBOutlet private weak var postMetaDataLabel: UILabel!
     override func viewDidLoad() {
         super.viewDidLoad()
         
         // Do any additional setup after loading the view.
         Task {
             do {
-                try await fetchPost()
+                let post = try await fetchPost(from: "https://www.reddit.com/r/ios/top.json")
+                updateUI(with: post)
             } catch {
-                print("Помилка завантаження: \(error)")
+                print("Error: \(error)")
             }
         }
     }
-    private func fetchPost() async throws {
-        dataLoader = try DataLoader(path: "https://www.reddit.com/r/ios/top.json")
+    
+    private func updateUI(with post: Post) {
+        
+        let metaData = [post.userName, post.timePassed, post.domain].joined(separator: " • ")
+        self.postMetaDataLabel.text = metaData
+        self.postTitleLabel.text = post.title
+        self.ratingLabel.text = String(post.rating)
+        self.commentsLabel.text = String(post.numComments)
+        loadImage(from: post.imgURL)
+        let bookmarkImg = post.saved ? "bookmark.fill" : "bookmark"
+        self.bookmarkButton.setImage(UIImage(systemName: bookmarkImg), for: .normal)
+    }
+    func loadImage(from url: String) {
+        guard let imageUrl = URL(string: url) else { return }
+        postPreviewImg.sd_setImage(with: imageUrl, placeholderImage: UIImage(named: "placeholder"))
+    }
+    private func fetchPost(from path: String) async throws -> Post{
+        dataLoader = try DataLoader(path: path)
         try dataLoader?.addParams(name: "limit", value: "1")
         
-        let post = try await dataLoader?.getData()
-        print("📌 Отриманий пост: \(String(describing: post))")
+        guard let post = try await dataLoader?.getData() else {throw PostError.gettingPostError}
+        print("Current post: \(String(describing: post))")
+        return post
     }
 
     /*
