@@ -49,8 +49,9 @@ class PostViewController: UIViewController {
     private func fetchPost(from path: String) async throws -> Post{
         dataLoader = try DataLoader(path: path)
         try dataLoader?.addParams(name: "limit", value: "1")
+        try dataLoader?.addParams(name: "subreddit", value: "BaldursGate3")
         
-        guard let post = try await dataLoader?.getData() else {throw PostError.gettingPostError}
+        guard let post = try await dataLoader?.getData() else {throw PostError.invalidPost}
         print("Current post: \(String(describing: post))")
         return post
     }

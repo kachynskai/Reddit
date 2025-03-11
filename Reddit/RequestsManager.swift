@@ -7,14 +7,17 @@
 
 import Foundation
 
-enum Params: String{
+enum Params: String, CaseIterable{
     case subreddit
     case limit
     case after
+    
+    static func isValid(_ name: String) -> Bool {
+        return Params.allCases.contains { $0.rawValue == name }
+    }
 }
 
 struct UrlBuilder{
-    //тут не забути подумати про те, що можуть додавати однакові параметри, коли розберусь з їх зміною
     private var urlComponents: URLComponents
     
     init?(path: String){
@@ -22,12 +25,32 @@ struct UrlBuilder{
         self.urlComponents = urlComponents
     }
     
-    mutating func addQueryItem(name: String, value: String?) {
+    mutating func addQueryItem(name: String, value: String?)throws{
+        guard Params.isValid(name) else {throw PostError.invalidURL}
+        if name == Params.subreddit.rawValue {
+           try updatePath(with: value)
+        } else {
+            updateQueryItem(name: name, value: value)
+        }
+    }
+    
+    private mutating func updatePath(with subreddit: String?) throws{
+        guard let subreddit = subreddit, !subreddit.isEmpty else {throw PostError.invalidURL}
+        var pathComponents = urlComponents.path.split(separator: "/").map(String.init)
+
+        if let subredditIndex = pathComponents.firstIndex(of: "r"), subredditIndex + 1 < pathComponents.count {
+            pathComponents[subredditIndex + 1] = subreddit
+        }
+        urlComponents.path = "/" + pathComponents.joined(separator: "/")
+    }
+    
+    private mutating func updateQueryItem(name: String, value: String?) {
         var items = urlComponents.queryItems ?? []
+        items.removeAll { $0.name == name }
         items.append(URLQueryItem(name: name, value: value))
         urlComponents.queryItems = items
     }
-    
+
     func buildUrl() -> URL? {
         urlComponents.url
     }
@@ -117,17 +140,15 @@ final class DataLoader{
     init(path: String) throws{
         guard let urlBuilder = UrlBuilder(path: path) else {throw PostError.invalidURL}
         self.urlBuilder = urlBuilder
-        print("loader was created")
     }
     
     func addParams(name: String, value: String?) throws{
-        urlBuilder.addQueryItem(name: name, value: value)
+        try urlBuilder.addQueryItem(name: name, value: value)
     }
     
     func getData()async throws -> Post{
         guard let path = urlBuilder.buildUrl() else{throw PostError.invalidURL}
         let result = try await fetchPost(from: path)
-        print("got result of request")
         return try Post(from: result)
     }
     
@@ -135,7 +156,6 @@ final class DataLoader{
         let (data, response) = try await URLSession.shared.data(from: url)
         guard let response = response as? HTTPURLResponse, response.statusCode == 200 else{throw PostError.invalidResponse}
         do{
-            print("trying to decode")
             return try JSONDecoder().decode(PostResponseData.self, from: data)
         }catch {
             throw PostError.invalidData
@@ -148,5 +168,5 @@ enum PostError: Error{
     case invalidResponse
     case invalidData
     case invalidImage
-    case gettingPostError
+    case invalidPost
 }
