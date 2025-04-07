@@ -1,89 +1,124 @@
-//
-//  PostListViewController.swift
-//  Reddit
-//
-//  Created by Iryna on 18.03.2025.
-//
 
 import UIKit
 
-class PostListViewController: UITableViewController {
+final class PostListViewController: UITableViewController {
+    
+    struct Const {
+        static let cellReuseIdentifier = "post_cell"
+        static let headerReuseIdentifier = "post_list_header"
+        static let numOfSections = 1
+        static let postDetailsSegueId = "go_to_details"
+        static let postsPerPage = "15"
+    }
+    
+//    @IBOutlet private weak var subredditLabel: UILabel!
+    
+    private var posts: [Post] = [];
+    private var after: String?
+    private var dataLoader: DataLoader?
+    private var isLoading = false
+    private var subreddit = "unknown"
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        // Uncomment the following line to preserve selection between presentations
-        // self.clearsSelectionOnViewWillAppear = false
-
-        // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
-        // self.navigationItem.rightBarButtonItem = self.editButtonItem
+        tableView.dataSource = self
+        tableView.delegate = self
+        tableView.register(UINib(nibName: "PostTableViewCell", bundle: nil), forCellReuseIdentifier: Const.cellReuseIdentifier)
+        tableView.register(UINib(nibName: "PostListTableHeader", bundle: nil), forCellReuseIdentifier: Const.headerReuseIdentifier)
+//        tableView.estimatedRowHeight = 150
+//        tableView.rowHeight = UITableView.automaticDimension
+        Task {
+            await fetchPage()
+        }
     }
 
     // MARK: - Table view data source
 
     override func numberOfSections(in tableView: UITableView) -> Int {
-        // #warning Incomplete implementation, return the number of sections
-        return 0
+        Const.numOfSections
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        // #warning Incomplete implementation, return the number of rows
-        return 0
+        return posts.count + 1
     }
-
-    /*
+    
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "reuseIdentifier", for: indexPath)
+        if indexPath.row == 0 {
+            let cell = tableView.dequeueReusableCell(withIdentifier: Const.headerReuseIdentifier, for: indexPath) as! PostListTableHeader
+            cell.config(subreddit: self.subreddit)
+            return cell
+        }
+        let cell = tableView.dequeueReusableCell(withIdentifier: Const.cellReuseIdentifier, for: indexPath) as! PostTableViewCell
 
-        // Configure the cell...
-
+        let post = self.posts[indexPath.row - 1]
+        cell.config(with: post)
         return cell
     }
-    */
-
-    /*
-    // Override to support conditional editing of the table view.
-    override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
-        // Return false if you do not want the specified item to be editable.
-        return true
+    override func tableView(_ tableView: UITableView, willSelectRowAt indexPath: IndexPath) -> IndexPath? {
+        let cell = tableView.cellForRow(at: indexPath)
+        if cell?.reuseIdentifier == Const.headerReuseIdentifier{
+            return nil
+        }
+        return indexPath
     }
-    */
 
-    /*
-    // Override to support editing the table view.
-    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
-        if editingStyle == .delete {
-            // Delete the row from the data source
-            tableView.deleteRows(at: [indexPath], with: .fade)
-        } else if editingStyle == .insert {
-            // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
-        }    
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        performSegue(withIdentifier: Const.postDetailsSegueId, sender: self)
     }
-    */
-
-    /*
-    // Override to support rearranging the table view.
-    override func tableView(_ tableView: UITableView, moveRowAt fromIndexPath: IndexPath, to: IndexPath) {
-
+    
+    // MARK: - Table view delegate
+    override func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        let curY = scrollView.contentOffset.y
+        let allPostsHeight = scrollView.contentSize.height
+        let viewHeight = scrollView.frame.size.height
+        
+        if curY > allPostsHeight - viewHeight * 1.5{
+            Task{
+                await fetchPage()
+            }
+        }
     }
-    */
-
-    /*
-    // Override to support conditional rearranging of the table view.
-    override func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
-        // Return false if you do not want the item to be re-orderable.
-        return true
-    }
-    */
-
-    /*
     // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destination.
-        // Pass the selected object to the new view controller.
+        switch segue.identifier{
+        case Const.postDetailsSegueId:
+            let nextVc = segue.destination as! PostDetailsViewController
+            if let selectedIndex = tableView.indexPathForSelectedRow{
+                nextVc.configure(with: self.posts[selectedIndex.row - 1])
+            }else{break}
+        default:
+            break
+        }
     }
-    */
+}
+extension PostListViewController{
+    
+    private func fetchPage() async{
+        guard !isLoading else { return }
+        isLoading = true
+        do {
+            if dataLoader == nil {
+                let path = "https://www.reddit.com/r/ios/top.json"
+                dataLoader = try DataLoader(path: path)
+                let subreddit = dataLoader?.getSubreddit() ?? "unknown"
+                self.subreddit = subreddit
+            }
+            try dataLoader?.addParams(name: "limit", value: Const.postsPerPage)
+            if let after = self.after {
+                try dataLoader?.addParams(name: "after", value: after)
+            }
+            
+            guard let (newPosts, newAfter) = try await dataLoader?.getData() else {throw PostError.invalidPost}
+            self.posts.append(contentsOf: newPosts)
+            self.after = newAfter
 
+            DispatchQueue.main.async {
+                self.tableView.reloadData()
+            }
+        } catch {
+            print("Error loading new next page: \(error)")
+        }
+        isLoading = false
+    }
+    
 }

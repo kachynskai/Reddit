@@ -8,7 +8,7 @@
 import UIKit
 import SDWebImage
 
-class PostViewController: UIViewController {
+final class PostViewController: UIViewController {
     private var dataLoader: DataLoader?
 
     @IBOutlet private weak var commentsLabel: UILabel!
@@ -22,12 +22,13 @@ class PostViewController: UIViewController {
         
         // Do any additional setup after loading the view.
         Task {
-            do {
-                let post = try await fetchPost(from: "https://www.reddit.com/r/ios/top.json")
-                updateUI(with: post)
-            } catch {
-                print("Error: \(error)")
-            }
+//            do {
+//                let post = try await fetchPost(from: "https://www.reddit.com/r/ios/top.json?limit=2")
+//                print(":dncjifdnvgijfg")
+//                updateUI(with: post[0])
+//            } catch {
+//                print("Error: \(error)")
+//            }
         }
     }
     
@@ -38,7 +39,6 @@ class PostViewController: UIViewController {
         self.postTitleLabel.text = post.title
         self.ratingLabel.text = String(post.rating)
         self.commentsLabel.text = String(post.numComments)
-        loadImage(from: post.imgURL)
         let bookmarkImg = post.saved ? "bookmark.fill" : "bookmark"
         self.bookmarkButton.setImage(UIImage(systemName: bookmarkImg), for: .normal)
     }
@@ -46,24 +46,14 @@ class PostViewController: UIViewController {
         guard let imageUrl = URL(string: url) else { return }
         postPreviewImg.sd_setImage(with: imageUrl, placeholderImage: UIImage(named: "placeholder"))
     }
-    private func fetchPost(from path: String) async throws -> Post{
-        dataLoader = try DataLoader(path: path)
-        try dataLoader?.addParams(name: "limit", value: "1")
-        try dataLoader?.addParams(name: "subreddit", value: "BaldursGate3")
-        
-        guard let post = try await dataLoader?.getData() else {throw PostError.invalidPost}
-        print("Current post: \(String(describing: post))")
-        return post
-    }
-
-    /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destination.
-        // Pass the selected object to the new view controller.
-    }
-    */
+//    private func fetchPost(from path: String) async throws -> [Post]{
+//        dataLoader = try DataLoader(path: path)
+//        guard let posts = try await dataLoader?.getData() else {throw PostError.invalidPost}
+//        for post in posts{
+//            print("Current post: \(String(describing: post))")
+//        }
+//    
+//        return posts
+//    }
 
 }

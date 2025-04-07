@@ -51,6 +51,14 @@ struct UrlBuilder{
         urlComponents.queryItems = items
     }
 
+        
+    func getSubreddit() -> String? {
+        let pathComponents = urlComponents.path.split(separator: "/")
+        guard let subredditIndex = pathComponents.firstIndex(of: "r"), subredditIndex + 1 < pathComponents.count else {return nil}
+        return "r/\(pathComponents[subredditIndex + 1])"
+    }
+
+
     func buildUrl() -> URL? {
         urlComponents.url
     }
@@ -61,6 +69,7 @@ struct PostResponseData: Codable{
 }
 
 struct PostChildren: Codable{
+    let after: String?
     let children:[PostGeneralInfo]
 }
 
@@ -74,7 +83,7 @@ struct PostData: Codable{
     let downs: Int
     let ups: Int
     let domain: String
-    let preview: PostPreview
+    let preview: PostPreview?
     let num_comments: Int
     let created_utc: Int
     
@@ -116,21 +125,26 @@ struct Post{
     let timePassed: String
     let domain: String
     let title: String
-    let imgURL: String
+    let imgURL: String?
     let rating: Int
     let numComments: Int
     var saved = Bool.random()
     
-    init(from data: PostResponseData)throws{
-        guard let post = data.data.children.first else {throw PostError.invalidData}
-        guard let img = post.data.preview.images.first else{throw PostError.invalidImage}
-        self.userName = post.data.author_fullname
-        self.domain = post.data.domain
-        self.title = post.data.title
-        self.rating = post.data.ups + post.data.downs
-        self.numComments = post.data.num_comments
-        self.imgURL = img.source.getCorrectImgURL()
-        self.timePassed = post.data.getTimePassed()
+    init(from data: PostData) throws {
+        if let img = data.preview?.images.first{
+            self.imgURL = img.source.getCorrectImgURL()
+        }else { self.imgURL = nil}
+            self.userName = data.author_fullname
+            self.domain = data.domain
+            self.title = data.title
+            self.rating = data.ups + data.downs
+            self.numComments = data.num_comments
+            self.timePassed = data.getTimePassed()
+        }
+        
+    static func from(responseData: PostResponseData) throws -> [Post] {
+        print(responseData)
+        return try responseData.data.children.map{ try Post(from: $0.data) }
     }
    
 }
@@ -146,19 +160,27 @@ final class DataLoader{
         try urlBuilder.addQueryItem(name: name, value: value)
     }
     
-    func getData()async throws -> Post{
+    func getSubreddit() -> String?{
+        urlBuilder.getSubreddit();
+    }
+    
+    func getData()async throws -> ([Post], String?){
         guard let path = urlBuilder.buildUrl() else{throw PostError.invalidURL}
+        print("PATHHH:\(path)\n")
         let result = try await fetchPost(from: path)
-        return try Post(from: result)
+        let posts = try Post.from(responseData: result)
+        let after = result.data.after
+        return (posts, after)
     }
     
     private func fetchPost(from url: URL) async throws -> PostResponseData{
         let (data, response) = try await URLSession.shared.data(from: url)
-        guard let response = response as? HTTPURLResponse, response.statusCode == 200 else{throw PostError.invalidResponse}
+        guard let response = response as? HTTPURLResponse, response.statusCode == 200
+        else{throw PostError.invalidResponse}
         do{
             return try JSONDecoder().decode(PostResponseData.self, from: data)
         }catch {
-            throw PostError.invalidData
+            throw PostError.INVALID
         }
     }
 }
@@ -169,4 +191,5 @@ enum PostError: Error{
     case invalidData
     case invalidImage
     case invalidPost
+    case INVALID
 }
