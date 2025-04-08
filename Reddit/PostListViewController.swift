@@ -13,11 +13,15 @@ final class PostListViewController: UITableViewController {
     
 //    @IBOutlet private weak var subredditLabel: UILabel!
     
-    private var posts: [Post] = [];
+    private var posts: [Post] = []
+    private var savedPosts: [Post] = []
+    private var filteredPosts: [Post] = []
     private var after: String?
     private var dataLoader: DataLoader?
     private var isLoading = false
+    private var isShowingSaved = false
     private var subreddit = "unknown"
+    private var lastUpdatedIndex: Int?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -29,6 +33,13 @@ final class PostListViewController: UITableViewController {
 //        tableView.rowHeight = UITableView.automaticDimension
         Task {
             await fetchPage()
+        }
+    }
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        if let updatedIndex = lastUpdatedIndex {
+            tableView.reloadRows(at: [IndexPath(row: updatedIndex, section: 0)], with: .automatic)
+            lastUpdatedIndex = nil
         }
     }
 
@@ -45,11 +56,13 @@ final class PostListViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         if indexPath.row == 0 {
             let cell = tableView.dequeueReusableCell(withIdentifier: Const.headerReuseIdentifier, for: indexPath) as! PostListTableHeader
+            cell.delegate = self
+            cell.searchDelegate = self
             cell.config(subreddit: self.subreddit)
             return cell
         }
         let cell = tableView.dequeueReusableCell(withIdentifier: Const.cellReuseIdentifier, for: indexPath) as! PostTableViewCell
-
+        cell.delegate = self
         let post = self.posts[indexPath.row - 1]
         cell.config(with: post)
         return cell
@@ -68,6 +81,7 @@ final class PostListViewController: UITableViewController {
     
     // MARK: - Table view delegate
     override func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        guard !isShowingSaved else { return }
         let curY = scrollView.contentOffset.y
         let allPostsHeight = scrollView.contentSize.height
         let viewHeight = scrollView.frame.size.height
@@ -82,10 +96,17 @@ final class PostListViewController: UITableViewController {
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         switch segue.identifier{
         case Const.postDetailsSegueId:
+            guard let selectedIdx = tableView.indexPathForSelectedRow else { return }
+            let post = self.posts[selectedIdx.row - 1]
             let nextVc = segue.destination as! PostDetailsViewController
-            if let selectedIndex = tableView.indexPathForSelectedRow{
-                nextVc.configure(with: self.posts[selectedIndex.row - 1])
-            }else{break}
+            nextVc.configure(with: post)
+            nextVc.onSaveToggled = { [weak self] updatedPost in
+                guard let self = self else { return }
+                self.posts[selectedIdx.row - 1] = updatedPost
+                self.tableView.reloadRows(at: [selectedIdx], with: .automatic)
+                savedPosts = posts
+            }
+            
         default:
             break
         }
@@ -121,4 +142,71 @@ extension PostListViewController{
         isLoading = false
     }
     
+}
+extension PostListViewController: PostTableViewCellDelegate{
+    func renewSave(_ cell: PostTableViewCell) {
+        guard let indexPath = tableView.indexPath(for: cell) else { return }
+        var post = posts[indexPath.row - 1]
+        
+        post.saved.toggle()
+        posts[indexPath.row - 1] = post
+        
+        SavedPostManager.shared.toggle(post: post)
+        cell.updateBookmarkImage(isSaved: post.saved)
+        savedPosts = posts
+    }
+    
+    func sharePost(_ cell: PostTableViewCell) {
+        guard let indexPath = tableView.indexPath(for: cell) else { return }
+        let post = posts[indexPath.row-1]
+        guard let url = URL(string: post.url) else { return }
+        
+        let activityVC = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        present(activityVC, animated: true)
+    }
+    
+}
+extension PostListViewController: TableHeaderDelegate{
+    func showPostsOnToggleSaved(_ showSaved: Bool) {
+        self.isShowingSaved = showSaved
+        posts = []
+        if showSaved{
+            
+            savedPosts = SavedPostManager.shared.loadAll()
+            filteredPosts = savedPosts
+            posts = savedPosts
+            after = nil
+        }else{
+            savedPosts = []
+            filteredPosts = []
+            dataLoader = nil
+            Task { await fetchPage()}
+        }
+        tableView.reloadData()
+    }
+    
+    
+}
+extension PostListViewController: UISearchBarDelegate{
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        guard isShowingSaved else{return}
+        if searchText.isEmpty{
+            posts = savedPosts
+        }else{
+            posts = savedPosts.filter{
+                $0.title.lowercased().contains(searchText.lowercased())
+            }
+        }
+        tableView.reloadData()
+        if !searchText.isEmpty{
+            DispatchQueue.main.async {
+                self.focusSearchBar()
+            }
+        }
+    }
+    func focusSearchBar() {
+        let header = tableView.cellForRow(at: IndexPath(row: 0, section: 0)) as! PostListTableHeader
+        header.makeSearchBarFirstResponder()
+        
+    }
 }

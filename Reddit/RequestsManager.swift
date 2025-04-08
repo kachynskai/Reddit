@@ -80,10 +80,13 @@ struct PostGeneralInfo: Codable{
 struct PostData: Codable{
     let author_fullname: String
     let title: String
+    let saved: Bool
     let downs: Int
     let ups: Int
     let domain: String
     let preview: PostPreview?
+    let id: String
+    let permalink: String
     let num_comments: Int
     let created_utc: Int
     
@@ -120,26 +123,33 @@ extension PostImage{
         self.url.replacingOccurrences(of: "&amp;", with: "&")
     }
 }
-struct Post{
+struct Post: Codable{
     let userName: String
     let timePassed: String
     let domain: String
     let title: String
     let imgURL: String?
     let rating: Int
+    let id: String
+    let url:String
     let numComments: Int
-    var saved = Bool.random()
+    var saved: Bool
     
     init(from data: PostData) throws {
+        
         if let img = data.preview?.images.first{
             self.imgURL = img.source.getCorrectImgURL()
         }else { self.imgURL = nil}
-            self.userName = data.author_fullname
-            self.domain = data.domain
-            self.title = data.title
-            self.rating = data.ups + data.downs
-            self.numComments = data.num_comments
-            self.timePassed = data.getTimePassed()
+        
+        self.userName = data.author_fullname
+        self.domain = data.domain
+        self.title = data.title
+        self.saved = SavedPostManager.shared.isPostSaved(id: data.id)
+        self.rating = data.ups + data.downs
+        self.id = data.id
+        self.url = "https://www.reddit.com\(data.permalink)"
+        self.numComments = data.num_comments
+        self.timePassed = data.getTimePassed()
         }
         
     static func from(responseData: PostResponseData) throws -> [Post] {
@@ -192,4 +202,47 @@ enum PostError: Error{
     case invalidImage
     case invalidPost
     case INVALID
+}
+
+final class SavedPostManager{
+    static let shared = SavedPostManager()
+    
+    private let fileURL:  URL
+    private let fileManager = FileManager.default
+    
+    private init(){
+        let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        fileURL = documentsURL.appendingPathComponent("savedPosts.json")
+    }
+    func loadAll()->[Post]{
+        guard let data = fileManager.contents(atPath: fileURL.path(percentEncoded: false)),
+            let savedPosts = try? JSONDecoder().decode([Post].self, from: data) else {
+            print("Empty posts file")
+            return []
+            }
+        return savedPosts
+    }
+    private func saveInFile(_ posts: [Post]) {
+        do {
+            let data = try JSONEncoder().encode(posts)
+            try data.write(to: fileURL)
+            print("File updated")
+        } catch {
+            print("Problem with updating:  \(error.localizedDescription)")
+        }
+    }
+    
+    func toggle(post: Post){
+        var posts = loadAll()
+        if let idx = posts.firstIndex(where: {$0.id == post.id}){
+            posts.remove(at: idx)
+        }else{
+            posts.append(post)
+        }
+        saveInFile(posts);
+    }
+    func isPostSaved(id: String) -> Bool{
+        let posts = loadAll()
+        return posts.contains(where: {$0.id == id})
+    }
 }

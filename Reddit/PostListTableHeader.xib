@@ -10,51 +10,74 @@
     <objects>
         <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner"/>
         <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
-        <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="post_list_header" rowHeight="48" id="c0L-nJ-fKX" customClass="PostListTableHeader" customModule="Reddit">
-            <rect key="frame" x="0.0" y="0.0" width="413" height="48"/>
-            <autoresizingMask key="autoresizingMask"/>
+        <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="post_list_header" id="c0L-nJ-fKX" customClass="PostListTableHeader" customModule="Reddit">
+            <rect key="frame" x="0.0" y="0.0" width="457" height="133"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
             <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" tableViewCell="c0L-nJ-fKX" id="JxW-zq-MSP">
-                <rect key="frame" x="0.0" y="0.0" width="413" height="48"/>
+                <rect key="frame" x="0.0" y="0.0" width="457" height="133"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
                     <view contentMode="scaleToFill" id="VY3-SM-kcf">
-                        <rect key="frame" x="-19" y="-3" width="430" height="50"/>
-                        <autoresizingMask key="autoresizingMask"/>
+                        <rect key="frame" x="0.0" y="0.0" width="454" height="138"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" horizontalCompressionResistancePriority="749" text="subreddit" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="xDA-3o-aCd">
-                                <rect key="frame" x="162" y="0.0" width="106" height="50"/>
-                                <fontDescription key="fontDescription" type="system" weight="medium" pointSize="25"/>
+                                <rect key="frame" x="163.66666666666666" y="5" width="126.99999999999997" height="127"/>
+                                <fontDescription key="fontDescription" type="system" weight="medium" pointSize="30"/>
                                 <color key="textColor" red="0.41947269440000001" green="0.2270641327" blue="0.383443743" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                 <nil key="highlightedColor"/>
                             </label>
                             <button opaque="NO" contentMode="scaleAspectFit" horizontalCompressionResistancePriority="751" contentHorizontalAlignment="left" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="PMT-I6-v1v">
-                                <rect key="frame" x="273" y="0.0" width="157" height="50"/>
+                                <rect key="frame" x="295.66666666666669" y="0.0" width="50" height="50"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="50" id="NFH-aX-0W7"/>
+                                    <constraint firstAttribute="height" constant="50" id="zmm-Lb-3Dm"/>
+                                </constraints>
                                 <state key="normal" title="Button"/>
                                 <buttonConfiguration key="configuration" style="plain" image="bookmark.circle" catalog="system">
                                     <color key="baseForegroundColor" red="0.41947269440000001" green="0.2270641327" blue="0.383443743" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                 </buttonConfiguration>
+                                <connections>
+                                    <action selector="showSavedToggle:" destination="c0L-nJ-fKX" eventType="touchUpInside" id="uzP-qV-56N"/>
+                                </connections>
                             </button>
+                            <searchBar contentMode="redraw" translatesAutoresizingMaskIntoConstraints="NO" id="FUP-uc-tVv">
+                                <rect key="frame" x="0.0" y="134" width="454" height="0.0"/>
+                                <color key="backgroundColor" red="0.49676537170000001" green="0.39518240339999999" blue="0.51911695079999998" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" id="DFu-ub-pcD"/>
+                                </constraints>
+                                <textInputTraits key="textInputTraits"/>
+                            </searchBar>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="T8E-Cg-7gE"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <constraints>
-                            <constraint firstItem="T8E-Cg-7gE" firstAttribute="trailing" secondItem="PMT-I6-v1v" secondAttribute="trailing" id="0wG-v2-blf"/>
-                            <constraint firstItem="T8E-Cg-7gE" firstAttribute="bottom" secondItem="xDA-3o-aCd" secondAttribute="bottom" id="1G7-oY-lxa"/>
-                            <constraint firstItem="xDA-3o-aCd" firstAttribute="top" secondItem="T8E-Cg-7gE" secondAttribute="top" id="1Ui-kv-rfY"/>
-                            <constraint firstItem="PMT-I6-v1v" firstAttribute="top" secondItem="T8E-Cg-7gE" secondAttribute="top" id="9hU-vY-2Fx"/>
+                            <constraint firstItem="xDA-3o-aCd" firstAttribute="top" secondItem="VY3-SM-kcf" secondAttribute="top" constant="5" id="1Ui-kv-rfY"/>
+                            <constraint firstItem="FUP-uc-tVv" firstAttribute="trailing" secondItem="VY3-SM-kcf" secondAttribute="trailing" id="5Ml-sM-Idj"/>
+                            <constraint firstItem="PMT-I6-v1v" firstAttribute="top" secondItem="VY3-SM-kcf" secondAttribute="top" id="Fqe-Er-4i0"/>
+                            <constraint firstItem="FUP-uc-tVv" firstAttribute="top" secondItem="PMT-I6-v1v" secondAttribute="bottom" id="Nge-qz-5sX"/>
                             <constraint firstItem="PMT-I6-v1v" firstAttribute="leading" secondItem="xDA-3o-aCd" secondAttribute="trailing" constant="5" id="THH-f1-T2O"/>
-                            <constraint firstItem="xDA-3o-aCd" firstAttribute="centerY" secondItem="T8E-Cg-7gE" secondAttribute="centerY" id="YYG-GM-MQ5"/>
-                            <constraint firstItem="xDA-3o-aCd" firstAttribute="centerX" secondItem="T8E-Cg-7gE" secondAttribute="centerX" id="a4V-b0-25Z"/>
-                            <constraint firstItem="T8E-Cg-7gE" firstAttribute="bottom" secondItem="PMT-I6-v1v" secondAttribute="bottom" id="c56-Rx-P7c"/>
-                            <constraint firstItem="xDA-3o-aCd" firstAttribute="centerX" secondItem="T8E-Cg-7gE" secondAttribute="centerX" id="x9g-P8-762"/>
+                            <constraint firstItem="FUP-uc-tVv" firstAttribute="top" secondItem="xDA-3o-aCd" secondAttribute="bottom" constant="2" id="V35-py-ceU"/>
+                            <constraint firstAttribute="bottom" secondItem="FUP-uc-tVv" secondAttribute="bottom" constant="4" id="c32-aX-lvN"/>
+                            <constraint firstItem="FUP-uc-tVv" firstAttribute="leading" secondItem="VY3-SM-kcf" secondAttribute="leading" id="fHH-Yi-6F2"/>
+                            <constraint firstItem="xDA-3o-aCd" firstAttribute="centerX" secondItem="VY3-SM-kcf" secondAttribute="centerX" id="vv4-F0-G5Y"/>
                         </constraints>
+                        <variation key="default">
+                            <mask key="constraints">
+                                <exclude reference="Nge-qz-5sX"/>
+                            </mask>
+                        </variation>
                     </view>
                 </subviews>
             </tableViewCellContentView>
             <connections>
+                <outlet property="savedButton" destination="PMT-I6-v1v" id="LOI-be-fPR"/>
+                <outlet property="searchBar" destination="FUP-uc-tVv" id="Z3S-1U-ryh"/>
+                <outlet property="searchBarConstraint" destination="DFu-ub-pcD" id="c8b-fK-snR"/>
                 <outlet property="subredditLabel" destination="xDA-3o-aCd" id="gf3-Cs-uXZ"/>
             </connections>
-            <point key="canvasLocation" x="250.00000000000003" y="-95.089285714285708"/>
+            <point key="canvasLocation" x="278.62595419847327" y="-20.774647887323944"/>
         </tableViewCell>
     </objects>
     <resources>

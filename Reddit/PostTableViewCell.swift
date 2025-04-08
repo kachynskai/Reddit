@@ -7,8 +7,13 @@
 
 import UIKit
 
-class PostTableViewCell: UITableViewCell {
+protocol PostTableViewCellDelegate: AnyObject {
+    func sharePost(_ cell: PostTableViewCell)
+    func renewSave(_ cell: PostTableViewCell)
+}
 
+final class PostTableViewCell: UITableViewCell {
+    weak var delegate: PostTableViewCellDelegate?
    
     @IBOutlet private weak var imgHeightConstraint: NSLayoutConstraint!
     @IBOutlet private weak var postMetaDataLabel: UILabel!
@@ -18,6 +23,21 @@ class PostTableViewCell: UITableViewCell {
     @IBOutlet private weak var postPreviewImg: UIImageView!
     @IBOutlet private weak var commentsLabel: UILabel!
     @IBOutlet private weak var ratingLabel: UILabel!
+    
+    
+    @IBAction private func sharePostTab(_ sender: UIButton) {
+        delegate?.sharePost(self)
+    }
+    
+    @IBAction private func toggleSave(_ sender: UIButton) {
+        delegate?.renewSave(self)
+    }
+    
+    func updateBookmarkImage(isSaved: Bool) {
+        let bookmarkImg = isSaved ? "bookmark.fill" : "bookmark"
+        bookmarkButton.setImage(UIImage(systemName: bookmarkImg), for: .normal)
+    }
+    
     override func awakeFromNib() {
         super.awakeFromNib()
         // Initialization code
