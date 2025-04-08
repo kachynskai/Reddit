@@ -15,7 +15,6 @@ final class PostListViewController: UITableViewController {
     
     private var posts: [Post] = []
     private var savedPosts: [Post] = []
-    private var filteredPosts: [Post] = []
     private var after: String?
     private var dataLoader: DataLoader?
     private var isLoading = false
@@ -104,7 +103,11 @@ final class PostListViewController: UITableViewController {
                 guard let self = self else { return }
                 self.posts[selectedIdx.row - 1] = updatedPost
                 self.tableView.reloadRows(at: [selectedIdx], with: .automatic)
-                savedPosts = posts
+                if(isShowingSaved){
+                    if let index = savedPosts.firstIndex(where: { $0.id == updatedPost.id }) {
+                        savedPosts[index] = updatedPost
+                    }
+                }
             }
             
         default:
@@ -153,7 +156,12 @@ extension PostListViewController: PostTableViewCellDelegate{
         
         SavedPostManager.shared.toggle(post: post)
         cell.updateBookmarkImage(isSaved: post.saved)
-        savedPosts = posts
+        
+        if(isShowingSaved){
+            if let index = savedPosts.firstIndex(where: { $0.id == post.id }) {
+                savedPosts[index] = post
+             }
+        }
     }
     
     func sharePost(_ cell: PostTableViewCell) {
@@ -173,12 +181,10 @@ extension PostListViewController: TableHeaderDelegate{
         if showSaved{
             
             savedPosts = SavedPostManager.shared.loadAll()
-            filteredPosts = savedPosts
             posts = savedPosts
             after = nil
         }else{
             savedPosts = []
-            filteredPosts = []
             dataLoader = nil
             Task { await fetchPage()}
         }
