@@ -7,7 +7,7 @@
 
 import UIKit
 
-final class PostDetailsViewController: UIViewController{
+final class PostDetailsViewController: UIViewController, BookmarkAnimationDelegate{
    
     struct Const {
         static let cellReuseIdentifier = "post_cell"
@@ -41,6 +41,7 @@ extension PostDetailsViewController: UITableViewDataSource{
         guard let post = self.post else {return UITableViewCell()}
         let cell = tableView.dequeueReusableCell(withIdentifier: Const.cellReuseIdentifier, for: indexPath) as! PostTableViewCell
         cell.delegate = self
+        cell.animationDelegate = self
         cell.config(with: post)
         return cell
     }
